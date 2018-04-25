@@ -3,10 +3,9 @@
 	<parent>
 		<groupId>com.alibaba.otter</groupId>
 		<artifactId>manager</artifactId>
-		<version>4.2.15</version>
+		<version>4.2.15.1</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
-	<groupId>com.alibaba.otter</groupId>
 	<artifactId>manager.biz</artifactId>
 	<packaging>jar</packaging>
 	<name>manager biz module for otter</name>
@@ -16,17 +15,17 @@
 		<dependency>
 			<groupId>com.alibaba.otter</groupId>
 			<artifactId>shared.common</artifactId>
-			<version>${project.version}</version>
+			<version>${project.parent.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.alibaba.otter</groupId>
 			<artifactId>shared.common</artifactId>
-			<version>${project.version}</version>
+			<version>${project.parent.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.alibaba.otter</groupId>
 			<artifactId>shared.push</artifactId>
-			<version>${project.version}</version>
+			<version>${project.parent.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.alibaba.otter</groupId>
@@ -129,6 +128,16 @@
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testng</groupId>
+			<artifactId>testng</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>mockit</groupId>
+			<artifactId>mockit</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

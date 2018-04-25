@@ -3,10 +3,9 @@
 	<parent>
 		<groupId>com.alibaba.otter</groupId>
 		<artifactId>manager</artifactId>
-		<version>4.2.15</version>
+		<version>4.2.15.1</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
-	<groupId>com.alibaba.otter</groupId>
 	<artifactId>manager.deployer</artifactId>
 	<packaging>jar</packaging>
 	<name>manager deployer module for otter</name>
@@ -24,12 +23,12 @@
 		<dependency>
 			<groupId>com.alibaba.otter</groupId>
 			<artifactId>manager.web</artifactId>
-			<version>${project.version}</version>
+			<version>${project.parent.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.alibaba.otter</groupId>
 			<artifactId>manager.biz</artifactId>
-			<version>${project.version}</version>
+			<version>${project.parent.version}</version>
 		</dependency>
 	</dependencies>
 	

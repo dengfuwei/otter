@@ -3,10 +3,9 @@
 	<parent>
 		<groupId>com.alibaba.otter</groupId>
 		<artifactId>node</artifactId>
-		<version>4.2.15</version>
+		<version>4.2.15.1</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
-	<groupId>com.alibaba.otter</groupId>
 	<artifactId>node.etl</artifactId>
 	<packaging>jar</packaging>
 	<name>etl module for otter</name>
@@ -16,27 +15,27 @@
 		<dependency>
 			<groupId>com.alibaba.otter</groupId>
 			<artifactId>shared.push</artifactId>
-			<version>${project.version}</version>
+			<version>${project.parent.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.alibaba.otter</groupId>
 			<artifactId>shared.arbitrate</artifactId>
-			<version>${project.version}</version>
+			<version>${project.parent.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.alibaba.otter</groupId>
 			<artifactId>shared.etl</artifactId>
-			<version>${project.version}</version>
+			<version>${project.parent.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.alibaba.otter</groupId>
 			<artifactId>node.common</artifactId>
-			<version>${project.version}</version>
+			<version>${project.parent.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.alibaba.otter</groupId>
 			<artifactId>node.canal</artifactId>
-			<version>${project.version}</version>
+			<version>${project.parent.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.google.protobuf</groupId>
@@ -90,6 +89,16 @@
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testng</groupId>
+			<artifactId>testng</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>mockit</groupId>
+			<artifactId>mockit</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

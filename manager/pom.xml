@@ -3,13 +3,11 @@
 	<parent>
 	    <groupId>com.alibaba.otter</groupId>
 	    <artifactId>otter</artifactId>
-	    <version>4.2.15</version>
+	    <version>4.2.15.1</version>
 	</parent>
-	<groupId>com.alibaba.otter</groupId>
 	<artifactId>manager</artifactId>
 	<packaging>pom</packaging>
 	<name>manager module for otter</name>
-	<version>4.2.15</version>
 	<url>http://github.com/alibaba/otter</url>
 	
 	<modules>

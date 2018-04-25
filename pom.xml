@@ -9,7 +9,7 @@
 	<artifactId>otter</artifactId>
 	<packaging>pom</packaging>
 	<name>otter</name>
-	<version>4.2.15</version>
+	<version>4.2.15.1</version>
 	<inceptionYear>2011</inceptionYear>
 	<url>http://github.com/alibaba/otter</url>
 	<organization>
@@ -225,8 +225,8 @@
 				<groupId>com.oracle</groupId>
 				<artifactId>ojdbc14</artifactId>
 				<version>10.2.0.3.0</version>
-				<scope>system</scope>
-				<systemPath>${user.dir}/lib/ojdbc14-10.2.0.3.0.jar</systemPath>
+<!-- 				<scope>system</scope> -->
+<!-- 				<systemPath>${user.dir}/lib/ojdbc14-10.2.0.3.0.jar</systemPath> -->
 			</dependency>
 			<!-- spring -->
 			<dependency>
@@ -312,6 +312,18 @@
 				<groupId>junit</groupId>
 				<artifactId>junit</artifactId>
 				<version>4.5</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.testng</groupId>
+				<artifactId>testng</artifactId>
+				<version>6.8</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>mockit</groupId>
+				<artifactId>mockit</artifactId>
+				<version>0.999.10</version>
 				<scope>test</scope>
 			</dependency>
 		</dependencies>
