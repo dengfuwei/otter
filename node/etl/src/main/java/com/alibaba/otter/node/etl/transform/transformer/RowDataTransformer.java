@@ -16,6 +16,7 @@
 
 package com.alibaba.otter.node.etl.transform.transformer;
 
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -23,6 +24,9 @@ import java.util.List;
 import org.apache.commons.lang.StringUtils;
 import org.apache.ddlutils.model.Column;
 import org.apache.ddlutils.model.Table;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.util.CollectionUtils;
 
 import com.alibaba.otter.node.etl.common.db.dialect.DbDialect;
@@ -40,6 +44,7 @@ import com.alibaba.otter.shared.etl.model.EventData;
 import com.alibaba.otter.shared.etl.model.EventType;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.taobao.tddl.dbsync.binlog.CustomColumnType;
 
 /**
  * RowData -> RowData数据的转换
@@ -48,6 +53,8 @@ import com.google.common.collect.Multimap;
  * @version 4.0.0
  */
 public class RowDataTransformer extends AbstractOtterTransformer<EventData, EventData> {
+	
+	private final Logger logger = LoggerFactory.getLogger(RowDataTransformer.class);
 
     private DbDialectFactory dbDialectFactory;
 
@@ -116,12 +123,12 @@ public class RowDataTransformer extends AbstractOtterTransformer<EventData, Even
         }
 
         // 处理column转化
-        List<EventColumn> otherColumns = translateColumns(result,
+        List<EventColumn> otherColumns = translateColumns(data, result,
             data.getColumns(),
             context.getDataMediaPair(),
             translateColumnNames,
             tableHolder);
-        translatePkColumn(result,
+        translatePkColumn(data, result,
             data.getKeys(),
             data.getOldKeys(),
             otherColumns,
@@ -170,12 +177,12 @@ public class RowDataTransformer extends AbstractOtterTransformer<EventData, Even
     }
 
     // 处理字段映射
-    private List<EventColumn> translateColumns(EventData data, List<EventColumn> columns, DataMediaPair dataMediaPair,
+    private List<EventColumn> translateColumns(EventData sdata, EventData data, List<EventColumn> columns, DataMediaPair dataMediaPair,
                                                Multimap<String, String> translateColumnNames,
                                                TableInfoHolder tableHolder) {
         List<EventColumn> tcolumns = new ArrayList<EventColumn>();
         for (EventColumn scolumn : columns) {
-            EventColumn tcolumn = translateColumn(data, scolumn, tableHolder, dataMediaPair, translateColumnNames);
+            EventColumn tcolumn = translateColumn(sdata, data, scolumn, tableHolder, dataMediaPair, translateColumnNames);
             if (tcolumn != null) {
                 tcolumns.add(tcolumn);
             }
@@ -183,13 +190,13 @@ public class RowDataTransformer extends AbstractOtterTransformer<EventData, Even
         return tcolumns;
     }
 
-    private void translatePkColumn(EventData data, List<EventColumn> pks, List<EventColumn> oldPks,
+    private void translatePkColumn(EventData sdata, EventData data, List<EventColumn> pks, List<EventColumn> oldPks,
                                    List<EventColumn> columns, DataMediaPair dataMediaPair,
                                    Multimap<String, String> translateColumnNames, TableInfoHolder tableHolder) {
         if (CollectionUtils.isEmpty(oldPks)) { // 如果不存在主键变更
             List<EventColumn> tpks = new ArrayList<EventColumn>();
             for (EventColumn scolumn : pks) {
-                EventColumn tcolumn = translateColumn(data, scolumn, tableHolder, dataMediaPair, translateColumnNames);
+                EventColumn tcolumn = translateColumn(sdata, data, scolumn, tableHolder, dataMediaPair, translateColumnNames);
                 if (tcolumn != null) {
                     tpks.add(tcolumn);
                 }
@@ -205,7 +212,7 @@ public class RowDataTransformer extends AbstractOtterTransformer<EventData, Even
                 EventColumn newPk = pks.get(i);
                 EventColumn oldPk = oldPks.get(i);
                 // 转化new pk
-                EventColumn tnewPk = translateColumn(data, newPk, tableHolder, dataMediaPair, translateColumnNames);
+                EventColumn tnewPk = translateColumn(sdata, data, newPk, tableHolder, dataMediaPair, translateColumnNames);
                 if (tnewPk != null) {
                     tnewPks.add(tnewPk);
                     // 转化old pk，这里不能再用translateColumnNames了，因为转化new
@@ -238,7 +245,7 @@ public class RowDataTransformer extends AbstractOtterTransformer<EventData, Even
         }
     }
 
-    private EventColumn translateColumn(EventData data, EventColumn scolumn, TableInfoHolder tableHolder,
+    private EventColumn translateColumn(EventData sdata, EventData data, EventColumn scolumn, TableInfoHolder tableHolder,
                                         DataMediaPair dataMediaPair, Multimap<String, String> translateColumnNames) {
         EventType type = data.getEventType();
         EventColumn tcolumn = new EventColumn();
@@ -314,7 +321,33 @@ public class RowDataTransformer extends AbstractOtterTransformer<EventData, Even
         // tcolumn.setColumnValue(encodeValue);
         // } else {
         // mysql编码转化已经在驱动层面上完成
-        tcolumn.setColumnValue(scolumn.getColumnValue());
+        // 如果是point类型，从源库查询数据拼接成字符串 dengfuwei 20180426
+        if(scolumn.getColumnType() == CustomColumnType.POINT && tcolumn.getColumnType() == Types.OTHER) {
+        	tcolumn.setColumnType(scolumn.getColumnType());
+        	DbMediaSource dbMediaSource = (DbMediaSource) dataMediaPair.getSource().getSource();
+            DbDialect dbDialect = dbDialectFactory.getDbDialect(dataMediaPair.getPipelineId(), dbMediaSource);
+            
+            StringBuilder pointSql = new StringBuilder();
+    		pointSql.append("select astext(").append(scolumn.getColumnName()).append(") from ")
+    			.append(sdata.getSchemaName()).append(".").append(sdata.getTableName())
+    			.append(" where ");
+    		for(int j = 0; j < sdata.getKeys().size(); j++) {
+    			EventColumn pk = sdata.getKeys().get(j);
+    			pointSql.append(j == 0 ? "" : " and ").append(pk.getColumnName())
+    				.append(" = ").append(pk.getColumnValue());
+    		}
+    		logger.warn("query point sql : {}", pointSql.toString());
+    		String point = "POINT(104.070449 30.548166)";
+    		try {
+				point = dbDialect.getJdbcTemplate().queryForObject(pointSql.toString(), String.class);
+			} catch (Exception e) {
+				logger.error("query point occured an exception", e);
+			}
+    		point = point.replace(" ", ",");
+    		tcolumn.setColumnValue(point);
+        } else {
+        	tcolumn.setColumnValue(scolumn.getColumnValue());
+        }
         // }
         translateColumnNames.remove(scolumn.getColumnName(), columnName);// 删除映射关系，避免下次重复转换
         return tcolumn;

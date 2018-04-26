@@ -42,6 +42,10 @@
 			<outputDirectory>conf</outputDirectory>
 		</file>
 		<file>
+			<source>./src/main/resources/nid</source>
+			<outputDirectory>conf</outputDirectory>
+		</file>
+		<file>
 			<source>../../lib/ojdbc14-10.2.0.3.0.jar</source>
 			<outputDirectory>lib</outputDirectory>
 		</file>

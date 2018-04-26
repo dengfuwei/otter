@@ -80,6 +80,7 @@ import com.alibaba.otter.shared.etl.model.EventData;
 import com.alibaba.otter.shared.etl.model.EventType;
 import com.alibaba.otter.shared.etl.model.Identity;
 import com.alibaba.otter.shared.etl.model.RowBatch;
+import com.taobao.tddl.dbsync.binlog.CustomColumnType;
 
 /**
  * 数据库load的执行入口
@@ -741,9 +742,15 @@ public class DbLoadAction implements InitializingBean, DisposableBean {
                 isRequiredMap.put(StringUtils.lowerCase(tableColumn.getName()), tableColumn.isRequired());
             }
 
+            int paramIndex = 0;
             for (int i = 0; i < columns.size(); i++) {
-                int paramIndex = i + 1;
-                EventColumn column = columns.get(i);
+            	EventColumn column = columns.get(i);
+            	// point类型的字段不设置ps的值 dengfuwei 20180426
+            	if(column.getColumnType() == CustomColumnType.POINT) {
+            		continue ;
+            	}
+				// int paramIndex = i + 1;
+                paramIndex ++;
                 int sqlType = column.getColumnType();
 
                 Boolean isRequired = isRequiredMap.get(StringUtils.lowerCase(column.getColumnName()));

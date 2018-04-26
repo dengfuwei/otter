@@ -41,6 +41,8 @@ import com.alibaba.otter.node.etl.common.db.dialect.SqlTemplate;
 import com.alibaba.otter.node.etl.common.db.utils.SqlUtils;
 import com.alibaba.otter.shared.common.model.config.data.DataMediaType;
 import com.alibaba.otter.shared.common.model.config.data.db.DbMediaSource;
+import com.alibaba.otter.shared.etl.model.EventColumn;
+import com.alibaba.otter.shared.etl.model.EventData;
 
 public class TimeTableIntegration extends BaseDbTest {
 
@@ -58,6 +60,25 @@ public class TimeTableIntegration extends BaseDbTest {
     private String[]            columnValues   = { "0000-00-00 00:00:00.0", "0000-00-00 00:00:00.0", "0000-00-00",
             "00:00:00", "1", "1"              };
 
+    private EventData get() {
+    	EventData currentData = new EventData();
+        currentData.setColumns(new ArrayList<EventColumn>());
+        for(int i=0; i<columns.length; i++) {
+        	EventColumn column = new EventColumn();
+        	column.setColumnName(columns[i]);
+        	column.setColumnValue(columnValues[i]);
+        	currentData.getColumns().add(column);
+        }
+        currentData.setKeys(new ArrayList<EventColumn>());
+        for(int i=0; i<pkColumns.length; i++) {
+        	EventColumn column = new EventColumn();
+        	column.setColumnName(pkColumns[i]);
+        	column.setColumnValue(pkColumnValues[i]);
+        	currentData.getKeys().add(column);
+        }
+        return currentData;
+    }
+    
     @Test
     public void test_mysql() {
         DbMediaSource dbMediaSource = new DbMediaSource();
@@ -74,6 +95,8 @@ public class TimeTableIntegration extends BaseDbTest {
 
         Table table = dbDialect.findTable("otter2", "test_time");
         System.out.println(table);
+        
+        final EventData currentData = get();
 
         final SqlTemplate sqlTemplate = dbDialect.getSqlTemplate();
         final JdbcTemplate jdbcTemplate = dbDialect.getJdbcTemplate();
@@ -87,7 +110,7 @@ public class TimeTableIntegration extends BaseDbTest {
                 int affect = 0;
                 String sql = null;
                 // 执行insert
-                sql = sqlTemplate.getInsertSql(SCHEMA_NAME, TABLE_NAME, pkColumns, columns);
+                sql = sqlTemplate.getInsertSql(currentData, SCHEMA_NAME, TABLE_NAME, pkColumns, columns);
                 System.out.println(sql);
                 affect = (Integer) jdbcTemplate.execute(sql, new PreparedStatementCallback() {
 

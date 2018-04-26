@@ -41,6 +41,8 @@ import com.alibaba.otter.node.etl.common.db.dialect.mysql.MysqlDialect;
 import com.alibaba.otter.node.etl.common.db.dialect.oracle.OracleDialect;
 import com.alibaba.otter.node.etl.common.db.utils.SqlUtils;
 import com.alibaba.otter.shared.common.model.config.data.db.DbDataMedia;
+import com.alibaba.otter.shared.etl.model.EventColumn;
+import com.alibaba.otter.shared.etl.model.EventData;
 
 public class DbDialectTest extends BaseDbTest {
 
@@ -63,12 +65,32 @@ public class DbDialectTest extends BaseDbTest {
     private String[]            columnValues       = { "hello", "100.01", "text_b", "text_c", "2011-01-01",
             "2011-01-01 11:11:11", "2011-01-01 11:11:11" };
 
+    private EventData get() {
+    	EventData currentData = new EventData();
+        currentData.setColumns(new ArrayList<EventColumn>());
+        for(int i=0; i<columns.length; i++) {
+        	EventColumn column = new EventColumn();
+        	column.setColumnName(columns[i]);
+        	column.setColumnValue(columnValues[i]);
+        	currentData.getColumns().add(column);
+        }
+        currentData.setKeys(new ArrayList<EventColumn>());
+        for(int i=0; i<pkColumns.length; i++) {
+        	EventColumn column = new EventColumn();
+        	column.setColumnName(pkColumns[i]);
+        	column.setColumnValue(pkColumnValues[i]);
+        	currentData.getKeys().add(column);
+        }
+        return currentData;
+    }
+    
     @Test(expectedExceptions = RuntimeException.class)
     public void test_mysql() {
         DbDataMedia media = getMysqlMedia();
         final DbDialect dbDialect = dbDialectFactory.getDbDialect(2L, media.getSource());
         want.object(dbDialect).clazIs(MysqlDialect.class);
 
+        final EventData currentData = get();
         final SqlTemplate sqlTemplate = dbDialect.getSqlTemplate();
         final JdbcTemplate jdbcTemplate = dbDialect.getJdbcTemplate();
         final TransactionTemplate transactionTemplate = dbDialect.getTransactionTemplate();
@@ -81,7 +103,7 @@ public class DbDialectTest extends BaseDbTest {
                 int affect = 0;
                 String sql = null;
                 // 执行insert
-                sql = sqlTemplate.getInsertSql(MYSQL_SCHEMA_NAME, TABLE_NAME, pkColumns, columns);
+                sql = sqlTemplate.getInsertSql(currentData, MYSQL_SCHEMA_NAME, TABLE_NAME, pkColumns, columns);
                 System.out.println(sql);
                 affect = (Integer) jdbcTemplate.execute(sql, new PreparedStatementCallback() {
 
@@ -96,7 +118,7 @@ public class DbDialectTest extends BaseDbTest {
                 });
                 want.number(affect).isEqualTo(1);
                 // 执行update
-                sql = sqlTemplate.getUpdateSql(MYSQL_SCHEMA_NAME, TABLE_NAME, pkColumns, columns);
+                sql = sqlTemplate.getUpdateSql(currentData, MYSQL_SCHEMA_NAME, TABLE_NAME, pkColumns, columns);
                 System.out.println(sql);
                 affect = (Integer) jdbcTemplate.execute(sql, new PreparedStatementCallback() {
 
@@ -123,7 +145,7 @@ public class DbDialectTest extends BaseDbTest {
                 });
                 want.number(affect).isEqualTo(1);
                 // 执行merge
-                sql = sqlTemplate.getMergeSql(MYSQL_SCHEMA_NAME, TABLE_NAME, pkColumns, columns, null, true);
+                sql = sqlTemplate.getMergeSql(currentData, MYSQL_SCHEMA_NAME, TABLE_NAME, pkColumns, columns, null, true);
                 System.out.println(sql);
                 affect = (Integer) jdbcTemplate.execute(sql, new PreparedStatementCallback() {
 
@@ -149,6 +171,7 @@ public class DbDialectTest extends BaseDbTest {
         final DbDialect dbDialect = dbDialectFactory.getDbDialect(1L, media.getSource());
 
         want.object(dbDialect).clazIs(OracleDialect.class);
+        final EventData currentData = get();
         final SqlTemplate sqlTemplate = dbDialect.getSqlTemplate();
         final JdbcTemplate jdbcTemplate = dbDialect.getJdbcTemplate();
         final TransactionTemplate transactionTemplate = dbDialect.getTransactionTemplate();
@@ -161,7 +184,7 @@ public class DbDialectTest extends BaseDbTest {
                 int affect = 0;
                 String sql = null;
                 // 执行insert
-                sql = sqlTemplate.getInsertSql(ORACLE_SCHEMA_NAME, TABLE_NAME, pkColumns, columns);
+                sql = sqlTemplate.getInsertSql(currentData, ORACLE_SCHEMA_NAME, TABLE_NAME, pkColumns, columns);
                 System.out.println(sql);
                 affect = (Integer) jdbcTemplate.execute(sql, new PreparedStatementCallback() {
 
@@ -176,7 +199,7 @@ public class DbDialectTest extends BaseDbTest {
                 });
                 want.number(affect).isEqualTo(1);
                 // 执行update
-                sql = sqlTemplate.getUpdateSql(ORACLE_SCHEMA_NAME, TABLE_NAME, pkColumns, columns);
+                sql = sqlTemplate.getUpdateSql(currentData, ORACLE_SCHEMA_NAME, TABLE_NAME, pkColumns, columns);
                 System.out.println(sql);
                 affect = (Integer) jdbcTemplate.execute(sql, new PreparedStatementCallback() {
 
@@ -203,7 +226,7 @@ public class DbDialectTest extends BaseDbTest {
                 });
                 want.number(affect).isEqualTo(1);
                 // 执行merge
-                sql = sqlTemplate.getMergeSql(ORACLE_SCHEMA_NAME, TABLE_NAME, pkColumns, columns, null, true);
+                sql = sqlTemplate.getMergeSql(currentData, ORACLE_SCHEMA_NAME, TABLE_NAME, pkColumns, columns, null, true);
                 System.out.println(sql);
 
                 affect = (Integer) jdbcTemplate.execute(sql, new PreparedStatementCallback() {

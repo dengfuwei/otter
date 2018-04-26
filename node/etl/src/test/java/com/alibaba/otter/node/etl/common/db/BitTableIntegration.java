@@ -43,6 +43,8 @@ import com.alibaba.otter.node.etl.common.db.dialect.mysql.MysqlDialect;
 import com.alibaba.otter.node.etl.common.db.utils.SqlUtils;
 import com.alibaba.otter.shared.common.model.config.data.DataMediaType;
 import com.alibaba.otter.shared.common.model.config.data.db.DbMediaSource;
+import com.alibaba.otter.shared.etl.model.EventColumn;
+import com.alibaba.otter.shared.etl.model.EventData;
 
 public class BitTableIntegration extends BaseDbTest {
 
@@ -58,6 +60,25 @@ public class BitTableIntegration extends BaseDbTest {
 
     private String[]            columnValues   = { "1", "63" };
 
+    private EventData get() {
+    	EventData currentData = new EventData();
+        currentData.setColumns(new ArrayList<EventColumn>());
+        for(int i=0; i<columns.length; i++) {
+        	EventColumn column = new EventColumn();
+        	column.setColumnName(columns[i]);
+        	column.setColumnValue(columnValues[i]);
+        	currentData.getColumns().add(column);
+        }
+        currentData.setKeys(new ArrayList<EventColumn>());
+        for(int i=0; i<pkColumns.length; i++) {
+        	EventColumn column = new EventColumn();
+        	column.setColumnName(pkColumns[i]);
+        	column.setColumnValue(pkColumnValues[i]);
+        	currentData.getKeys().add(column);
+        }
+        return currentData;
+    }
+    
     @Test
     public void test_mysql() throws UnsupportedEncodingException {
         DbMediaSource dbMediaSource = new DbMediaSource();
@@ -74,7 +95,7 @@ public class BitTableIntegration extends BaseDbTest {
 
         Table table = dbDialect.findTable(SCHEMA_NAME, TABLE_NAME);
         System.out.println(table);
-
+        final EventData currentData = get();
         final SqlTemplate sqlTemplate = dbDialect.getSqlTemplate();
         final JdbcTemplate jdbcTemplate = dbDialect.getJdbcTemplate();
         final TransactionTemplate transactionTemplate = dbDialect.getTransactionTemplate();
@@ -86,7 +107,7 @@ public class BitTableIntegration extends BaseDbTest {
                 int affect = 0;
                 String sql = null;
                 // 执行insert
-                sql = sqlTemplate.getInsertSql(SCHEMA_NAME, TABLE_NAME, pkColumns, columns);
+                sql = sqlTemplate.getInsertSql(currentData, SCHEMA_NAME, TABLE_NAME, pkColumns, columns);
                 System.out.println(sql);
                 affect = (Integer) jdbcTemplate.execute(sql, new PreparedStatementCallback() {
 

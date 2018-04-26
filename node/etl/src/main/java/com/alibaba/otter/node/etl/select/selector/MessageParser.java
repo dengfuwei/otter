@@ -54,6 +54,7 @@ import com.alibaba.otter.shared.etl.model.EventColumn;
 import com.alibaba.otter.shared.etl.model.EventColumnIndexComparable;
 import com.alibaba.otter.shared.etl.model.EventData;
 import com.alibaba.otter.shared.etl.model.EventType;
+import com.taobao.tddl.dbsync.binlog.CustomColumnType;
 
 /**
  * 数据对象解析
@@ -662,7 +663,7 @@ public class MessageParser {
 
             if (dbColumn != null) {
                 int sqlType = dbColumn.getTypeCode();
-                if (sqlType != column.getSqlType()) {
+                if (column.getSqlType() != CustomColumnType.POINT && sqlType != column.getSqlType()) {
                     // 针对oracle的erosa给出的字段为非标准的jdbc，需要做一次类型反查
                     eventColumn.setColumnType(sqlType);
                     logger.info("table [{}] column [{}] is not match , MeType: {}, EType {}", new Object[] {

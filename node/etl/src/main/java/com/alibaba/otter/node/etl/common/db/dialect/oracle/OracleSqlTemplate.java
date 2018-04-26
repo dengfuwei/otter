@@ -17,6 +17,7 @@
 package com.alibaba.otter.node.etl.common.db.dialect.oracle;
 
 import com.alibaba.otter.node.etl.common.db.dialect.AbstractSqlTemplate;
+import com.alibaba.otter.shared.etl.model.EventData;
 
 /**
  * oracle生成模板
@@ -26,12 +27,10 @@ import com.alibaba.otter.node.etl.common.db.dialect.AbstractSqlTemplate;
  */
 public class OracleSqlTemplate extends AbstractSqlTemplate {
 
-    private static final String ESCAPE = "\"";
-
     /**
      * http://en.wikipedia.org/wiki/Merge_(SQL)
      */
-    public String getMergeSql(String schemaName, String tableName, String[] keyNames, String[] columnNames,
+    public String getMergeSql(EventData currentData, String schemaName, String tableName, String[] keyNames, String[] columnNames,
                               String[] viewColumnNames, boolean includePks) {
         final String aliasA = "a";
         final String aliasB = "b";

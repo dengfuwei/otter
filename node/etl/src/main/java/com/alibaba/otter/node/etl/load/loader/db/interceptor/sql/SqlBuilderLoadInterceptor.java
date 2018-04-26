@@ -55,12 +55,12 @@ public class SqlBuilderLoadInterceptor extends AbstractLoadInterceptor<DbLoadCon
             if (CollectionUtils.isEmpty(currentData.getColumns())
                 && (dbDialect.isDRDS() || sqlTemplate instanceof OracleSqlTemplate)) { // 如果表为全主键，直接进行insert
                 // sql
-                sql = sqlTemplate.getInsertSql(schemaName,
+                sql = sqlTemplate.getInsertSql(currentData, schemaName,
                     currentData.getTableName(),
                     buildColumnNames(currentData.getKeys()),
                     buildColumnNames(currentData.getColumns()));
             } else {
-                sql = sqlTemplate.getMergeSql(schemaName,
+                sql = sqlTemplate.getMergeSql(currentData, schemaName,
                     currentData.getTableName(),
                     buildColumnNames(currentData.getKeys()),
                     buildColumnNames(currentData.getColumns()),
@@ -100,14 +100,14 @@ public class SqlBuilderLoadInterceptor extends AbstractLoadInterceptor<DbLoadCon
             }
 
             if (rowMode && !existOldKeys) {// 如果是行记录,并且不存在主键变更，考虑merge sql
-                sql = sqlTemplate.getMergeSql(schemaName,
+                sql = sqlTemplate.getMergeSql(currentData, schemaName,
                     currentData.getTableName(),
                     keyColumns,
                     otherColumns,
                     new String[] {},
                     !dbDialect.isDRDS());
             } else {// 否则进行update sql
-                sql = sqlTemplate.getUpdateSql(schemaName, currentData.getTableName(), keyColumns, otherColumns);
+                sql = sqlTemplate.getUpdateSql(currentData, schemaName, currentData.getTableName(), keyColumns, otherColumns);
             }
         } else if (type.isDelete()) {
             sql = sqlTemplate.getDeleteSql(schemaName,

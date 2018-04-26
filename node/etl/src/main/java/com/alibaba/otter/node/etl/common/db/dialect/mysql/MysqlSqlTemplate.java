@@ -17,6 +17,9 @@
 package com.alibaba.otter.node.etl.common.db.dialect.mysql;
 
 import com.alibaba.otter.node.etl.common.db.dialect.AbstractSqlTemplate;
+import com.alibaba.otter.shared.etl.model.EventColumn;
+import com.alibaba.otter.shared.etl.model.EventData;
+import com.taobao.tddl.dbsync.binlog.CustomColumnType;
 
 /**
  * mysql sql生成模板
@@ -25,10 +28,10 @@ import com.alibaba.otter.node.etl.common.db.dialect.AbstractSqlTemplate;
  * @version 4.0.0
  */
 public class MysqlSqlTemplate extends AbstractSqlTemplate {
-
+	
     private static final String ESCAPE = "`";
 
-    public String getMergeSql(String schemaName, String tableName, String[] pkNames, String[] columnNames,
+    public String getMergeSql(EventData currentData, String schemaName, String tableName, String[] pkNames, String[] columnNames,
                               String[] viewColumnNames, boolean includePks) {
         StringBuilder sql = new StringBuilder("insert into " + getFullName(schemaName, tableName) + "(");
         int size = columnNames.length;
@@ -43,7 +46,13 @@ public class MysqlSqlTemplate extends AbstractSqlTemplate {
         sql.append(") values (");
         size = columnNames.length;
         for (int i = 0; i < size; i++) {
-            sql.append("?").append(" , ");
+        	EventColumn column = currentData.getColumns().get(i);
+        	// 对于位置类型的字段，需要将源数据库的值直接拼接到sql上 dengfuwei 20180426
+        	if(column.getColumnType() == CustomColumnType.POINT) {
+        		sql.append(column.getColumnValue()).append(" , ");
+        	} else {
+        		sql.append("?").append(" , ");
+        	}
         }
         size = pkNames.length;
         for (int i = 0; i < size; i++) {

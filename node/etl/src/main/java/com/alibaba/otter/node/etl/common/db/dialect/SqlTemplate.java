@@ -16,6 +16,8 @@
 
 package com.alibaba.otter.node.etl.common.db.dialect;
 
+import com.alibaba.otter.shared.etl.model.EventData;
+
 /**
  * sql构造模板操作
  * 
@@ -26,15 +28,15 @@ public interface SqlTemplate {
 
     public String getSelectSql(String schemaName, String tableName, String[] pkNames, String[] columnNames);
 
-    public String getUpdateSql(String schemaName, String tableName, String[] pkNames, String[] columnNames);
+    public String getUpdateSql(EventData currentData, String schemaName, String tableName, String[] pkNames, String[] columnNames);
 
     public String getDeleteSql(String schemaName, String tableName, String[] pkNames);
 
-    public String getInsertSql(String schemaName, String tableName, String[] pkNames, String[] columnNames);
+    public String getInsertSql(EventData currentData, String schemaName, String tableName, String[] pkNames, String[] columnNames);
 
     /**
      * 获取对应的mergeSql
      */
-    public String getMergeSql(String schemaName, String tableName, String[] pkNames, String[] columnNames,
+    public String getMergeSql(EventData currentData, String schemaName, String tableName, String[] pkNames, String[] columnNames,
                               String[] viewColumnNames, boolean updatePks);
 }
