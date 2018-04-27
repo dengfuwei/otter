@@ -123,7 +123,7 @@ $control.setTemplate("home:navigation.vm")
       <td>$!source.type</td>
 	  <td>$!source.driver</td>
 	  <td>$!source.encode</td>
-      <td>$!source.url</td>
+      <td>#if($!source.type == 'ELASTICSEARCH') $!source.clusterNodes #else $!source.url #end</td>
       <td>
 		<input type="button" value="选择" onclick="javascript:returnSelected('$source.id','$source.name')">
 	  </td>

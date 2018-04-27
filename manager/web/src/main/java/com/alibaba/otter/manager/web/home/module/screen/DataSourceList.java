@@ -16,13 +16,6 @@
 
 package com.alibaba.otter.manager.web.home.module.screen;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.Resource;
-
 import com.alibaba.citrus.turbine.Context;
 import com.alibaba.citrus.turbine.dataresolver.Param;
 import com.alibaba.citrus.util.Paginator;
@@ -32,7 +25,14 @@ import com.alibaba.otter.manager.web.common.model.SeniorDataMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.DataMedia;
 import com.alibaba.otter.shared.common.model.config.data.DataMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.db.DbMediaSource;
+import com.alibaba.otter.shared.common.model.config.data.es.ElasticsearchMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.mq.MqMediaSource;
+
+import javax.annotation.Resource;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class DataSourceList {
 
@@ -77,6 +77,8 @@ public class DataSourceList {
             } else if (dataMediaSource instanceof MqMediaSource) {
                 seniorDataMediaSource.setUrl(((MqMediaSource) dataMediaSource).getUrl());
                 seniorDataMediaSource.setStorePath(((MqMediaSource) dataMediaSource).getStorePath());
+            } else if (dataMediaSource instanceof ElasticsearchMediaSource) {
+                seniorDataMediaSource.setClusterNodes(((ElasticsearchMediaSource) dataMediaSource).getClusterNodes());
             }
             List<DataMedia> dataMedia = dataMediaService.listByDataMediaSourceId(dataMediaSource.getId());
             seniorDataMediaSource.setDataMedias(dataMedia);

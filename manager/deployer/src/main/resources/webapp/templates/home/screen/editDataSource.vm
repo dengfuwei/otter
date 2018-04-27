@@ -42,9 +42,10 @@ $control.setTemplate("home:navigation.vm")
       <tr> 
         <th>类型：</th>
         <td>
-            <select id="sourceType" name="$dataMediaSourceGroup.type.key">			
-				<option value="MYSQL" #if($source.type.isMysql()) selected="selected" #end>MySQL</option>
-				<option value="ORACLE" #if($source.type.isOracle()) selected="selected" #end>Oracle</option>
+            <select id="sourceType" name="$dataMediaSourceGroup.type.key" onchange="changeform();">
+				<option value="MYSQL" #if($source.type == 'MYSQL') selected="selected" #end>MySQL</option>
+				<option value="ORACLE" #if($source.type == 'ORACLE') selected="selected" #end>Oracle</option>
+				<option value="ELASTICSEARCH" #if($source.type == 'ELASTICSEARCH') selected="selected" #end>Elasticsearch</option>
 			</select><span class="red">*</span>
         </td>
 	  </tr>
@@ -64,14 +65,22 @@ $control.setTemplate("home:navigation.vm")
 			<span class="red">#editDataSourceMessage ($dataMediaSourceGroup.password)</span>
 		</td>
       </tr>
-	  <tr> 
+	  <tr class="DB">
         <th>URL：</th>
         <td>
-			<input id="sourceUrl" name="$dataMediaSourceGroup.url.key" value="$source.url" type="text" class="setting_input"/><span class="red">*</span>
+			<input id="sourceUrl" name="$dataMediaSourceGroup.url.key" value="$!source.url" type="text" class="setting_input"/><span class="red">*</span>
 			<br />
 			<span class="red">#editDataSourceMessage ($dataMediaSourceGroup.url)</span>
 		</td>
       </tr>
+        <tr class="ES">
+          <th>ClusterNodes：</th>
+          <td>
+              <input id="clusterNodes" name="$dataMediaSourceGroup.clusterNodes.key" value="$!source.clusterNodes" type="text" class="setting_input"/>
+              <br />
+              <span class="red">#editDataSourceMessage ($dataMediaSourceGroup.clusterNodes)</span>
+          </td>
+        </tr>
 	  #**
 	   <tr> 
         <th>StorePath：</th>
@@ -113,3 +122,8 @@ $control.setTemplate("home:navigation.vm")
   <div class="btn"><a href="javascript:document.editSourceForm.submit();">保存</a></div>
  </form>
 </div>
+<script language="javascript">
+<!--
+	changeform();
+//-->
+</script>

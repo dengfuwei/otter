@@ -16,20 +16,6 @@
 
 package com.alibaba.otter.manager.biz.config.datamedia.impl;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
-import javax.sql.DataSource;
-
-import org.apache.ddlutils.model.Column;
-import org.apache.ddlutils.model.Table;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
-
-import com.alibaba.otter.shared.common.utils.Assert;
 import com.alibaba.otter.manager.biz.common.DataSourceCreator;
 import com.alibaba.otter.manager.biz.common.exceptions.ManagerException;
 import com.alibaba.otter.manager.biz.common.exceptions.RepeatConfigureException;
@@ -40,9 +26,22 @@ import com.alibaba.otter.manager.biz.config.datamediasource.DataMediaSourceServi
 import com.alibaba.otter.shared.common.model.config.data.DataMedia;
 import com.alibaba.otter.shared.common.model.config.data.DataMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.db.DbDataMedia;
+import com.alibaba.otter.shared.common.model.config.data.es.ElasticsearchDataMedia;
 import com.alibaba.otter.shared.common.model.config.data.mq.MqDataMedia;
+import com.alibaba.otter.shared.common.utils.Assert;
 import com.alibaba.otter.shared.common.utils.JsonUtils;
 import com.alibaba.otter.shared.common.utils.meta.DdlUtils;
+import org.apache.ddlutils.model.Column;
+import org.apache.ddlutils.model.Table;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import javax.sql.DataSource;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author simon
@@ -65,9 +64,13 @@ public class DataMediaServiceImpl implements DataMediaService {
     @Override
     public List<String> queryColumnByMedia(DataMedia dataMedia) {
         List<String> columnResult = new ArrayList<String>();
-        if (dataMedia.getSource().getType().isNapoli()) {
+        // 如果不是数据库类型，则不用查询对应的字段 dengfuwei 20180427
+        if (!dataMedia.getSource().getType().isMysql() && !dataMedia.getSource().getType().isOracle()) {
             return columnResult;
         }
+//        if (dataMedia.getSource().getType().isNapoli()) {
+//            return columnResult;
+//        }
 
         DataSource dataSource = dataSourceCreator.createDataSource(dataMedia.getSource());
         // 针对multi表，直接获取第一个匹配的表结构
@@ -315,6 +318,9 @@ public class DataMediaServiceImpl implements DataMediaService {
                 dataMedia.setSource(dataMediaSource);
             } else if (dataMediaSource.getType().isNapoli() || dataMediaSource.getType().isMq()) {
                 dataMedia = JsonUtils.unmarshalFromString(dataMediaDo.getProperties(), MqDataMedia.class);
+                dataMedia.setSource(dataMediaSource);
+            } else if (dataMediaSource.getType().isElasticSearch()) {
+                dataMedia = JsonUtils.unmarshalFromString(dataMediaDo.getProperties(), ElasticsearchDataMedia.class);
                 dataMedia.setSource(dataMediaSource);
             }
 

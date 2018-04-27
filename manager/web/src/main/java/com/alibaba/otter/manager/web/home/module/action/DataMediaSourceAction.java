@@ -31,6 +31,7 @@ import com.alibaba.otter.manager.biz.config.datamediasource.DataMediaSourceServi
 import com.alibaba.otter.manager.web.common.WebConstant;
 import com.alibaba.otter.shared.common.model.config.data.DataMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.db.DbMediaSource;
+import com.alibaba.otter.shared.common.model.config.data.es.ElasticsearchMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.mq.MqMediaSource;
 
 public class DataMediaSourceAction extends AbstractAction {
@@ -78,6 +79,15 @@ public class DataMediaSourceAction extends AbstractAction {
                 err.setMessage("invalidDataMediaSource");
                 return;
             }
+        } else if (dataMediaSource.getType().isElasticSearch()) {
+            ElasticsearchMediaSource elasticsearchMediaSource = new ElasticsearchMediaSource();
+            dataMediaSourceInfo.setProperties(elasticsearchMediaSource);
+            try {
+                dataMediaSourceService.create(elasticsearchMediaSource);
+            } catch (RepeatConfigureException rce) {
+                err.setMessage("invalidDataMediaSource");
+                return;
+            }
         }
 
         nav.redirectTo(WebConstant.DATA_MEDIA_SOURCE_LIST_LINK);
@@ -100,20 +110,43 @@ public class DataMediaSourceAction extends AbstractAction {
                        @Param("searchKey") String searchKey,
                        @FormField(name = "formDataMediaSourceError", group = "dataMediaSourceInfo") CustomErrors err,
                        Navigator nav) throws Exception {
-        DbMediaSource dbMediaSource = new DbMediaSource();
-        dataMediaSourceInfo.setProperties(dbMediaSource);
+        DataMediaSource dataMediaSource = new DataMediaSource();
+        dataMediaSourceInfo.setProperties(dataMediaSource);
+        if (dataMediaSource.getType().isMysql() || dataMediaSource.getType().isOracle()) {
+            DbMediaSource dbMediaSource = new DbMediaSource();
+            dataMediaSourceInfo.setProperties(dbMediaSource);
+            if (dataMediaSource.getType().isMysql()) {
+                dbMediaSource.setDriver("com.mysql.jdbc.Driver");
+            } else if (dataMediaSource.getType().isOracle()) {
+                dbMediaSource.setDriver("oracle.jdbc.driver.OracleDriver");
+            }
 
-        if (dbMediaSource.getType().isMysql()) {
-            dbMediaSource.setDriver("com.mysql.jdbc.Driver");
-        } else if (dbMediaSource.getType().isOracle()) {
-            dbMediaSource.setDriver("oracle.jdbc.driver.OracleDriver");
-        }
+            try {
+                dataMediaSourceService.modify(dbMediaSource);
+            } catch (RepeatConfigureException rce) {
+                err.setMessage("invalidDataMediaSource");
+                return;
+            }
+        } else if (dataMediaSource.getType().isNapoli() || dataMediaSource.getType().isMq()) {
+            MqMediaSource mqMediaSource = new MqMediaSource();
+            dataMediaSourceInfo.setProperties(mqMediaSource);
 
-        try {
-            dataMediaSourceService.modify(dbMediaSource);
-        } catch (RepeatConfigureException rce) {
-            err.setMessage("invalidDataMediaSource");
-            return;
+            try {
+                dataMediaSourceService.modify(mqMediaSource);
+            } catch (RepeatConfigureException rce) {
+                err.setMessage("invalidDataMediaSource");
+                return;
+            }
+        } else if (dataMediaSource.getType().isElasticSearch()) {
+            ElasticsearchMediaSource elasticsearchMediaSource = new ElasticsearchMediaSource();
+            dataMediaSourceInfo.setProperties(elasticsearchMediaSource);
+
+            try {
+                dataMediaSourceService.modify(elasticsearchMediaSource);
+            } catch (RepeatConfigureException rce) {
+                err.setMessage("invalidDataMediaSource");
+                return;
+            }
         }
 
         nav.redirectToLocation("dataSourceList.htm?pageIndex=" + pageIndex + "&searchKey=" + urlEncode(searchKey));

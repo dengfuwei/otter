@@ -16,15 +16,6 @@
 
 package com.alibaba.otter.manager.biz.config.datamediasource.impl;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.alibaba.otter.shared.common.utils.Assert;
 import com.alibaba.otter.manager.biz.common.exceptions.ManagerException;
 import com.alibaba.otter.manager.biz.common.exceptions.RepeatConfigureException;
 import com.alibaba.otter.manager.biz.config.datamediasource.DataMediaSourceService;
@@ -32,8 +23,17 @@ import com.alibaba.otter.manager.biz.config.datamediasource.dal.DataMediaSourceD
 import com.alibaba.otter.manager.biz.config.datamediasource.dal.dataobject.DataMediaSourceDO;
 import com.alibaba.otter.shared.common.model.config.data.DataMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.db.DbMediaSource;
+import com.alibaba.otter.shared.common.model.config.data.es.ElasticsearchMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.mq.MqMediaSource;
+import com.alibaba.otter.shared.common.utils.Assert;
 import com.alibaba.otter.shared.common.utils.JsonUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author simon
@@ -192,11 +192,14 @@ public class DataMediaSourceServiceImpl implements DataMediaSourceService {
             dataMediaSourceDo.setId(dataMediaSource.getId());
             dataMediaSourceDo.setName(dataMediaSource.getName());
             dataMediaSourceDo.setType(dataMediaSource.getType());
-            if (dataMediaSource instanceof DbMediaSource) {
-                dataMediaSourceDo.setProperties(JsonUtils.marshalToString((DbMediaSource) dataMediaSource));
-            } else if (dataMediaSource instanceof MqMediaSource) {
-                dataMediaSourceDo.setProperties(JsonUtils.marshalToString((MqMediaSource) dataMediaSource));
-            }
+//            if (dataMediaSource instanceof DbMediaSource) {
+//                dataMediaSourceDo.setProperties(JsonUtils.marshalToString((DbMediaSource) dataMediaSource));
+//            } else if (dataMediaSource instanceof MqMediaSource) {
+//                dataMediaSourceDo.setProperties(JsonUtils.marshalToString((MqMediaSource) dataMediaSource));
+//            } else if (dataMediaSource instanceof ElasticsearchMediaSource) {
+//                dataMediaSourceDo.setProperties(JsonUtils.marshalToString(dataMediaSource));
+//            }
+            dataMediaSourceDo.setProperties(JsonUtils.marshalToString(dataMediaSource));
 
             dataMediaSourceDo.setGmtCreate(dataMediaSource.getGmtCreate());
             dataMediaSourceDo.setGmtModified(dataMediaSource.getGmtModified());
@@ -222,6 +225,8 @@ public class DataMediaSourceServiceImpl implements DataMediaSourceService {
                 dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), DbMediaSource.class);
             } else if (dataMediaSourceDo.getType().isNapoli() || dataMediaSourceDo.getType().isMq()) {
                 dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), MqMediaSource.class);
+            } else if (dataMediaSourceDo.getType().isElasticSearch()) {
+                dataMediaSource = JsonUtils.unmarshalFromString(dataMediaSourceDo.getProperties(), ElasticsearchMediaSource.class);
             }
 
             dataMediaSource.setId(dataMediaSourceDo.getId());

@@ -35,7 +35,9 @@ public enum DataMediaType {
     /** napoli */
     NAPOLI,
     /** diamond push for us */
-    DIAMOND_PUSH;
+    DIAMOND_PUSH,
+    /** ELASTICSEARCH */
+    ELASTICSEARCH;
 
     public boolean isMysql() {
         return this.equals(DataMediaType.MYSQL);
@@ -67,5 +69,9 @@ public enum DataMediaType {
 
     public boolean isDiamondPush() {
         return this.equals(DataMediaType.DIAMOND_PUSH);
+    }
+
+    public boolean isElasticSearch(){
+        return this.equals(DataMediaType.ELASTICSEARCH);
     }
 }

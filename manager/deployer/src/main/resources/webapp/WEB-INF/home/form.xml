@@ -241,9 +241,18 @@
 			<field name="username" displayName="用户名" />
 			<field name="password" displayName="密码" />
 			<field name="url" displayName="链接">
-				<fm-validators:required-validator>
-					<message>必须填写${displayName}</message>
-				</fm-validators:required-validator>
+				<fm-validators:if test="type.value != 'ELASTICSEARCH'">
+					<fm-validators:required-validator>
+						<message>必须填写${displayName}</message>
+					</fm-validators:required-validator>
+				</fm-validators:if>
+			</field>
+			<field name="clusterNodes" displayName="clusterNodes">
+				<fm-validators:if test="type.value == 'ELASTICSEARCH'">
+					<fm-validators:required-validator>
+						<message>必须填写${displayName}</message>
+					</fm-validators:required-validator>
+				</fm-validators:if>
 			</field>
 			<field name="encode" displayName="数据库编码">
 				<fm-validators:required-validator>

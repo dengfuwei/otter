@@ -37,4 +37,15 @@ function callback2(msg) {
 }
 
 function changeform(){
+    var sourceType = $('#sourceType').val();
+    if(sourceType == 'ELASTICSEARCH'){
+        $('.ES').show();
+        $('.DB').hide();
+    } else{
+        $('.DB').show();
+        $('.ES').hide();
+    }
+//    var sourceType = document.getElementById("sourceType").value;
+//    document.getElementsByClassName("DB").style.display=="none";
+//    document.getElementsByClassName("ES").style.display=="";
 }

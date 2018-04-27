@@ -16,10 +16,10 @@
 
 package com.alibaba.otter.manager.web.common.model;
 
-import java.util.List;
-
 import com.alibaba.otter.shared.common.model.config.data.DataMedia;
 import com.alibaba.otter.shared.common.model.config.data.db.DbMediaSource;
+
+import java.util.List;
 
 /**
  * @author simon 2011-12-9 下午03:17:39
@@ -30,6 +30,8 @@ public class SeniorDataMediaSource extends DbMediaSource {
     private boolean           used;
     private String            storePath;
     private List<DataMedia>   dataMedias;
+    private String clusterName;
+    private String clusterNodes;
 
     public boolean isUsed() {
         return used;
@@ -55,4 +57,19 @@ public class SeniorDataMediaSource extends DbMediaSource {
         this.dataMedias = dataMedias;
     }
 
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
+    }
+
+    public String getClusterNodes() {
+        return clusterNodes;
+    }
+
+    public void setClusterNodes(String clusterNodes) {
+        this.clusterNodes = clusterNodes;
+    }
 }
