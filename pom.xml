@@ -119,6 +119,7 @@
 		<spring-version>3.1.2.RELEASE</spring-version>
 		<jetty_verion>8.1.7.v20120910</jetty_verion>
 		<otter_canal_version>1.0.25.1</otter_canal_version>
+		<elasticsearch.version>5.6.1</elasticsearch.version>
 	</properties>
 
 	<modules>
@@ -326,6 +327,16 @@
 				<version>0.999.10</version>
 				<scope>test</scope>
 			</dependency>
+			<dependency>
+	            <groupId>org.elasticsearch.client</groupId>
+	            <artifactId>transport</artifactId>
+	            <version>${elasticsearch.version}</version>
+	        </dependency>
+	        <dependency>
+	            <groupId>org.elasticsearch</groupId>
+	            <artifactId>elasticsearch</artifactId>
+	            <version>${elasticsearch.version}</version>
+	        </dependency>
 		</dependencies>
 	</dependencyManagement>
 

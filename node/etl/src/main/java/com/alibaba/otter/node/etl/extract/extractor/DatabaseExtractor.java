@@ -188,7 +188,12 @@ public class DatabaseExtractor extends AbstractExtractor<DbBatch> implements Ini
     private boolean checkNeedDbForRowMode(Pipeline pipeline, EventData eventData) {
         // 获取数据表信息
         DataMedia dataMedia = ConfigHelper.findDataMedia(pipeline, eventData.getTableId());
-        DbDialect dbDialect = dbDialectFactory.getDbDialect(pipeline.getId(), (DbMediaSource) dataMedia.getSource());
+        DbDialect dbDialect = null;
+        if(dataMedia.getSource().getType().isElasticSearch()) {
+        	dbDialect = dbDialectFactory.getDbDialect(pipeline.getId(), dataMedia.getSource());
+        } else {
+        	
+        }
         Table table = dbDialect.findTable(eventData.getSchemaName(), eventData.getTableName());
         if (table.getColumnCount() == eventData.getColumns().size() + eventData.getKeys().size()) {
             return false;
@@ -300,8 +305,7 @@ public class DatabaseExtractor extends AbstractExtractor<DbBatch> implements Ini
                 Thread.currentThread().setName(String.format(WORKER_NAME_FORMAT, pipeline.getId(), pipeline.getName()));
                 // 获取数据表信息
                 DataMedia dataMedia = ConfigHelper.findDataMedia(pipeline, eventData.getTableId());
-                DbDialect dbDialect = dbDialectFactory.getDbDialect(pipeline.getId(),
-                    (DbMediaSource) dataMedia.getSource());
+                DbDialect dbDialect = dbDialectFactory.getDbDialect(pipeline.getId(), dataMedia.getSource());
                 Table table = dbDialect.findTable(eventData.getSchemaName(), eventData.getTableName());
                 TableData keyTableData = buildTableData(table, eventData.getKeys());
 

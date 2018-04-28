@@ -18,6 +18,7 @@ package com.alibaba.otter.shared.common.model.config.data;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.Properties;
 
 import org.apache.commons.lang.builder.ToStringBuilder;
 
@@ -37,6 +38,7 @@ public class DataMediaSource implements Serializable {
     private String            encode;
     private Date              gmtCreate;
     private Date              gmtModified;
+    private Properties        properties;
 
     public Long getId() {
         return id;
@@ -86,7 +88,15 @@ public class DataMediaSource implements Serializable {
         this.encode = encode;
     }
 
-    @Override
+    public Properties getProperties() {
+		return properties;
+	}
+
+	public void setProperties(Properties properties) {
+		this.properties = properties;
+	}
+
+	@Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;

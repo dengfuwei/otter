@@ -114,4 +114,9 @@ public class MysqlDialect extends AbstractDbDialect {
         return (String) jdbcTemplate.queryForObject("select database()", String.class);
     }
 
+	@Override
+	public boolean isNosql() {
+		return false;
+	}
+
 }

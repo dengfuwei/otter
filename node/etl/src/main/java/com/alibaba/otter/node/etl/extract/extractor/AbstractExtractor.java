@@ -37,7 +37,7 @@ public abstract class AbstractExtractor<P> implements OtterExtractor<P> {
 
     protected DbDialect getDbDialect(Long pipelineId, Long tableId) {
         DataMedia dataMedia = ConfigHelper.findDataMedia(getPipeline(pipelineId), tableId);
-        return dbDialectFactory.getDbDialect(pipelineId, (DbMediaSource) dataMedia.getSource());
+        return dbDialectFactory.getDbDialect(pipelineId, dataMedia.getSource());
     }
 
     protected Pipeline getPipeline(Long pipelineId) {

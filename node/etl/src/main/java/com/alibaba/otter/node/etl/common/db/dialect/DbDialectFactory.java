@@ -25,6 +25,7 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 
+import org.elasticsearch.client.transport.TransportClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
@@ -33,6 +34,8 @@ import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.alibaba.otter.node.etl.common.datasource.DataSourceService;
+import com.alibaba.otter.node.etl.common.db.dialect.es.ElasticsearchDialect;
+import com.alibaba.otter.shared.common.model.config.data.DataMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.db.DbMediaSource;
 import com.google.common.base.Function;
 import com.google.common.collect.MigrateMap;
@@ -50,54 +53,58 @@ public class DbDialectFactory implements DisposableBean {
     private DbDialectGenerator                       dbDialectGenerator;
 
     // 第一层pipelineId , 第二层DbMediaSource id
-    private Map<Long, Map<DbMediaSource, DbDialect>> dialects;
+    private Map<Long, Map<DataMediaSource, DbDialect>> dialects;
 
     public DbDialectFactory(){
-        dialects = OtterMigrateMap.makeSoftValueComputingMapWithRemoveListenr(new Function<Long, Map<DbMediaSource, DbDialect>>() {
+        dialects = OtterMigrateMap.makeSoftValueComputingMapWithRemoveListenr(new Function<Long, Map<DataMediaSource, DbDialect>>() {
 
-            public Map<DbMediaSource, DbDialect> apply(final Long pipelineId) {
+            public Map<DataMediaSource, DbDialect> apply(final Long pipelineId) {
                 // 构建第二层map
-                return MigrateMap.makeComputingMap(new Function<DbMediaSource, DbDialect>() {
+                return MigrateMap.makeComputingMap(new Function<DataMediaSource, DbDialect>() {
 
-                    public DbDialect apply(final DbMediaSource source) {
-                        DataSource dataSource = dataSourceService.getDataSource(pipelineId, source);
-                        final JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-                        return (DbDialect) jdbcTemplate.execute(new ConnectionCallback() {
-
-                            public Object doInConnection(Connection c) throws SQLException, DataAccessException {
-                                DatabaseMetaData meta = c.getMetaData();
-                                String databaseName = meta.getDatabaseProductName();
-                                String databaseVersion = meta.getDatabaseProductVersion();
-                                int databaseMajorVersion = meta.getDatabaseMajorVersion();
-                                int databaseMinorVersion = meta.getDatabaseMinorVersion();
-                                DbDialect dialect = dbDialectGenerator.generate(jdbcTemplate,
-                                    databaseName,
-                                    databaseVersion,
-                                    databaseMajorVersion,
-                                    databaseMinorVersion,
-                                    source.getType());
-                                if (dialect == null) {
-                                    throw new UnsupportedOperationException("no dialect for" + databaseName);
-                                }
-
-                                if (logger.isInfoEnabled()) {
-                                    logger.info(String.format("--- DATABASE: %s, SCHEMA: %s ---",
-                                        databaseName,
-                                        (dialect.getDefaultSchema() == null) ? dialect.getDefaultCatalog() : dialect.getDefaultSchema()));
-                                }
-
-                                return dialect;
-                            }
-                        });
-
+                    public DbDialect apply(final DataMediaSource source) {
+                    	if(source.getType().isElasticSearch()) {
+                    		TransportClient client = dataSourceService.getDataSource(pipelineId, source);
+                    		return new ElasticsearchDialect(client);
+                    	} else {
+                    		DataSource dataSource = dataSourceService.getDataSource(pipelineId, source);
+                    		final JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+                    		return (DbDialect) jdbcTemplate.execute(new ConnectionCallback() {
+                    			
+                    			public Object doInConnection(Connection c) throws SQLException, DataAccessException {
+                    				DatabaseMetaData meta = c.getMetaData();
+                    				String databaseName = meta.getDatabaseProductName();
+                    				String databaseVersion = meta.getDatabaseProductVersion();
+                    				int databaseMajorVersion = meta.getDatabaseMajorVersion();
+                    				int databaseMinorVersion = meta.getDatabaseMinorVersion();
+                    				DbDialect dialect = dbDialectGenerator.generate(jdbcTemplate,
+                    						databaseName,
+                    						databaseVersion,
+                    						databaseMajorVersion,
+                    						databaseMinorVersion,
+                    						source.getType());
+                    				if (dialect == null) {
+                    					throw new UnsupportedOperationException("no dialect for" + databaseName);
+                    				}
+                    				
+                    				if (logger.isInfoEnabled()) {
+                    					logger.info(String.format("--- DATABASE: %s, SCHEMA: %s ---",
+                    							databaseName,
+                    							(dialect.getDefaultSchema() == null) ? dialect.getDefaultCatalog() : dialect.getDefaultSchema()));
+                    				}
+                    				
+                    				return dialect;
+                    			}
+                    		});
+                    	}
                     }
                 });
             }
         },
-            new OtterRemovalListener<Long, Map<DbMediaSource, DbDialect>>() {
+            new OtterRemovalListener<Long, Map<DataMediaSource, DbDialect>>() {
 
                 @Override
-                public void onRemoval(Long pipelineId, Map<DbMediaSource, DbDialect> dialect) {
+                public void onRemoval(Long pipelineId, Map<DataMediaSource, DbDialect> dialect) {
                     if (dialect == null) {
                         return;
                     }
@@ -111,12 +118,12 @@ public class DbDialectFactory implements DisposableBean {
 
     }
 
-    public DbDialect getDbDialect(Long pipelineId, DbMediaSource source) {
+    public DbDialect getDbDialect(Long pipelineId, DataMediaSource source) {
         return dialects.get(pipelineId).get(source);
     }
 
     public void destory(Long pipelineId) {
-        Map<DbMediaSource, DbDialect> dialect = dialects.remove(pipelineId);
+        Map<DataMediaSource, DbDialect> dialect = dialects.remove(pipelineId);
         if (dialect != null) {
             for (DbDialect dbDialect : dialect.values()) {
                 dbDialect.destory();

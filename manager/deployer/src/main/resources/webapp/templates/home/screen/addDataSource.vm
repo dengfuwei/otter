@@ -77,6 +77,14 @@ $control.setTemplate("home:navigation.vm")
             <span class="red">#addDataSourceMessage ($dataMediaSourceGroup.clusterNodes)</span>
         </td>
       </tr>
+      <tr class="ES">
+        <th>ClusterName：</th>
+        <td>
+            <input id="clusterName" name="$dataMediaSourceGroup.clusterName.key" value="$!dataMediaSourceGroup.clusterName.value" type="text" class="setting_input"/>
+            <br />
+            <span class="red">#addDataSourceMessage ($dataMediaSourceGroup.clusterName)</span>
+        </td>
+      </tr>
 
 	  #**
 	  <tr> 

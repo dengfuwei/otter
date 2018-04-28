@@ -19,7 +19,7 @@ $control.setTemplate("home:navigation.vm")
   <th>编码：</th><td>$!source.encode</td>
   </tr>
   <tr>
-  <th>URL：</th><td>#if($!source.type == 'ELASTICSEARCH') $!source.clusterNodes #else $!source.url #end</td>
+  <th>URL：</th><td>#if($!source.type == 'ELASTICSEARCH') $!source.clusterNodes ($!source.clusterName) #else $!source.url #end</td>
   </tr>
  </table>
  </div>

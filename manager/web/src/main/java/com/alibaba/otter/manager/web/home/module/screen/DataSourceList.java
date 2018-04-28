@@ -79,6 +79,7 @@ public class DataSourceList {
                 seniorDataMediaSource.setStorePath(((MqMediaSource) dataMediaSource).getStorePath());
             } else if (dataMediaSource instanceof ElasticsearchMediaSource) {
                 seniorDataMediaSource.setClusterNodes(((ElasticsearchMediaSource) dataMediaSource).getClusterNodes());
+                seniorDataMediaSource.setClusterName(((ElasticsearchMediaSource) dataMediaSource).getClusterName());
             }
             List<DataMedia> dataMedia = dataMediaService.listByDataMediaSourceId(dataMediaSource.getId());
             seniorDataMediaSource.setDataMedias(dataMedia);

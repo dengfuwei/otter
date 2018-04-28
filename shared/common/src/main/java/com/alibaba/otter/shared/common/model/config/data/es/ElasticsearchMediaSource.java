@@ -7,6 +7,8 @@ public class ElasticsearchMediaSource extends DataMediaSource {
     private static final long serialVersionUID = 2878550932723731876L;
 
     private String clusterNodes;
+    
+    private String clusterName;
 
     public String getClusterNodes() {
         return clusterNodes;
@@ -15,4 +17,13 @@ public class ElasticsearchMediaSource extends DataMediaSource {
     public void setClusterNodes(String clusterNodes) {
         this.clusterNodes = clusterNodes;
     }
+
+	public String getClusterName() {
+		return clusterName;
+	}
+
+	public void setClusterName(String clusterName) {
+		this.clusterName = clusterName;
+	}
+    
 }

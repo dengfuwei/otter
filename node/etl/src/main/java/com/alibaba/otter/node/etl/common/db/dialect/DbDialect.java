@@ -58,6 +58,8 @@ public interface DbDialect {
     public TransactionTemplate getTransactionTemplate();
 
     public SqlTemplate getSqlTemplate();
+    
+    public NosqlTemplate getNosqlTemplate();
 
     public Table findTable(String schema, String table);
 
@@ -68,4 +70,6 @@ public interface DbDialect {
     public void reloadTable(String schema, String table);
 
     public void destory();
+    
+    public boolean isNosql();
 }

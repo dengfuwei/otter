@@ -117,8 +117,7 @@ public class FreedomExtractor extends AbstractExtractor<DbBatch> {
                                 Long.valueOf(tableIdColumn.getColumnValue()));
                         }
 
-                        DbDialect dbDialect = dbDialectFactory.getDbDialect(pipeline.getId(),
-                            (DbMediaSource) dataMedia.getSource());
+                        DbDialect dbDialect = dbDialectFactory.getDbDialect(pipeline.getId(), dataMedia.getSource());
                         // 考虑offer[1-128]的配置模式
                         if (!dataMedia.getNameMode().getMode().isSingle()
                             || !dataMedia.getNamespaceMode().getMode().isSingle()) {

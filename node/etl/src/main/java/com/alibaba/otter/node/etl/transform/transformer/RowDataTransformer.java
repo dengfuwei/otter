@@ -26,7 +26,6 @@ import org.apache.ddlutils.model.Column;
 import org.apache.ddlutils.model.Table;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataAccessException;
 import org.springframework.util.CollectionUtils;
 
 import com.alibaba.otter.node.etl.common.db.dialect.DbDialect;
@@ -74,6 +73,12 @@ public class RowDataTransformer extends AbstractOtterTransformer<EventData, Even
         result.setSize(data.getSize());
         result.setHint(data.getHint());
         result.setWithoutSchema(data.isWithoutSchema());
+        // es不需要转换字段
+        if(dataMedia.getSource().getType().isElasticSearch()) {
+        	result.setKeys(data.getKeys());
+        	result.setColumns(data.getColumns());
+        	return result;
+        }
         if (data.getEventType().isDdl()) {
             // ddl不需要处理字段
             if (StringUtils.equalsIgnoreCase(result.getSchemaName(), data.getSchemaName())
@@ -115,8 +120,7 @@ public class RowDataTransformer extends AbstractOtterTransformer<EventData, Even
         if (useTableTransform || enableCompatibleMissColumn) {// 控制一下是否需要反查table
                                                               // meta信息，如果同构数据库，完全没必要反查
             // 获取目标库的表信息
-            DbDialect dbDialect = dbDialectFactory.getDbDialect(dataMediaPair.getPipelineId(),
-                (DbMediaSource) dataMedia.getSource());
+            DbDialect dbDialect = dbDialectFactory.getDbDialect(dataMediaPair.getPipelineId(), dataMedia.getSource());
 
             Table table = dbDialect.findTable(result.getSchemaName(), result.getTableName());
             tableHolder = new TableInfoHolder(table, useTableTransform, enableCompatibleMissColumn);

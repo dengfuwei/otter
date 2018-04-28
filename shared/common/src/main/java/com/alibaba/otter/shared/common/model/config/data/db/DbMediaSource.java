@@ -35,7 +35,7 @@ public class DbMediaSource extends DataMediaSource {
     private String            username;
     private String            password;
     private String            driver;
-    private Properties        properties;
+    
 
     public String getUrl() {
         return url;
@@ -75,14 +75,6 @@ public class DbMediaSource extends DataMediaSource {
 
     public void setDriver(String driver) {
         this.driver = driver;
-    }
-
-    public Properties getProperties() {
-        return properties;
-    }
-
-    public void setProperties(Properties properties) {
-        this.properties = properties;
     }
 
 }

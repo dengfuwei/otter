@@ -69,4 +69,9 @@ public class OracleDialect extends AbstractDbDialect {
                                                     String.class);
     }
 
+	@Override
+	public boolean isNosql() {
+		return false;
+	}
+
 }

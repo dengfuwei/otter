@@ -73,7 +73,7 @@ $control.setTemplate("home:navigation.vm")
 			<span class="red">#editDataSourceMessage ($dataMediaSourceGroup.url)</span>
 		</td>
       </tr>
-        <tr class="ES">
+      <tr class="ES">
           <th>ClusterNodes：</th>
           <td>
               <input id="clusterNodes" name="$dataMediaSourceGroup.clusterNodes.key" value="$!source.clusterNodes" type="text" class="setting_input"/>
@@ -81,6 +81,14 @@ $control.setTemplate("home:navigation.vm")
               <span class="red">#editDataSourceMessage ($dataMediaSourceGroup.clusterNodes)</span>
           </td>
         </tr>
+      <tr class="ES">
+        <th>ClusterName：</th>
+        <td>
+            <input id="clusterName" name="$dataMediaSourceGroup.clusterName.key" value="$!source.clusterName" type="text" class="setting_input"/>
+            <br />
+            <span class="red">#editDataSourceMessage ($dataMediaSourceGroup.clusterName)</span>
+        </td>
+      </tr>
 	  #**
 	   <tr> 
         <th>StorePath：</th>

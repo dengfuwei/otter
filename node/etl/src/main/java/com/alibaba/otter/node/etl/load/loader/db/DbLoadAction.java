@@ -57,6 +57,7 @@ import org.springframework.util.CollectionUtils;
 import com.alibaba.otter.node.common.config.ConfigClientService;
 import com.alibaba.otter.node.etl.common.db.dialect.DbDialect;
 import com.alibaba.otter.node.etl.common.db.dialect.DbDialectFactory;
+import com.alibaba.otter.node.etl.common.db.dialect.NosqlTemplate;
 import com.alibaba.otter.node.etl.common.db.dialect.mysql.MysqlDialect;
 import com.alibaba.otter.node.etl.common.db.utils.SqlUtils;
 import com.alibaba.otter.node.etl.load.exception.LoadException;
@@ -351,8 +352,11 @@ public class DbLoadAction implements InitializingBean, DisposableBean {
     private void doDdl(DbLoadContext context, List<EventData> eventDatas) {
         for (final EventData data : eventDatas) {
             DataMedia dataMedia = ConfigHelper.findDataMedia(context.getPipeline(), data.getTableId());
+            if(dataMedia.getSource().getType().isElasticSearch()) {
+            	continue ;
+            }
             final DbDialect dbDialect = dbDialectFactory.getDbDialect(context.getIdentity().getPipelineId(),
-                (DbMediaSource) dataMedia.getSource());
+                dataMedia.getSource());
             Boolean skipDdlException = context.getPipeline().getParameters().getSkipDdlException();
             try {
                 Boolean result = dbDialect.getJdbcTemplate().execute(new StatementCallback<Boolean>() {
@@ -378,12 +382,12 @@ public class DbLoadAction implements InitializingBean, DisposableBean {
                 }
 
             } catch (Throwable e) {
-                if (skipDdlException) {
+//                if (skipDdlException) {
                     // do skip
                     logger.warn("skip exception for ddl : {} , caused by {}", data, ExceptionUtils.getFullStackTrace(e));
-                } else {
-                    throw new LoadException(e);
-                }
+//                } else {
+//                    throw new LoadException(e);
+//                }
             }
 
         }
@@ -534,7 +538,7 @@ public class DbLoadAction implements InitializingBean, DisposableBean {
             EventData data = datas.get(0); // eventData为同一数据库的记录，只取第一条即可
             DataMedia dataMedia = ConfigHelper.findDataMedia(context.getPipeline(), data.getTableId());
             dbDialect = dbDialectFactory.getDbDialect(context.getIdentity().getPipelineId(),
-                (DbMediaSource) dataMedia.getSource());
+                dataMedia.getSource());
 
         }
 
@@ -575,69 +579,95 @@ public class DbLoadAction implements InitializingBean, DisposableBean {
                             failedDatas.addAll(splitDatas); // 先添加为出错记录，可能获取lob,datasource会出错
                         }
 
-                        final LobCreator lobCreator = dbDialect.getLobHandler().getLobCreator();
-                        if (useBatch && canBatch) {
-                            // 处理batch
-                            final String sql = splitDatas.get(0).getSql();
-                            int[] affects = new int[splitDatas.size()];
-                            affects = (int[]) dbDialect.getTransactionTemplate().execute(new TransactionCallback() {
-
-                                public Object doInTransaction(TransactionStatus status) {
-                                    // 初始化一下内容
-                                    try {
-                                        failedDatas.clear(); // 先清理
-                                        processedDatas.clear();
-                                        interceptor.transactionBegin(context, splitDatas, dbDialect);
-                                        JdbcTemplate template = dbDialect.getJdbcTemplate();
-                                        int[] affects = template.batchUpdate(sql, new BatchPreparedStatementSetter() {
-
-                                            public void setValues(PreparedStatement ps, int idx) throws SQLException {
-                                                doPreparedStatement(ps, dbDialect, lobCreator, splitDatas.get(idx));
-                                            }
-
-                                            public int getBatchSize() {
-                                                return splitDatas.size();
-                                            }
-                                        });
-                                        interceptor.transactionEnd(context, splitDatas, dbDialect);
-                                        return affects;
-                                    } finally {
-                                        lobCreator.close();
-                                    }
-                                }
-
-                            });
-
-                            // 更新统计信息
-                            for (int i = 0; i < splitDatas.size(); i++) {
-                                processStat(splitDatas.get(i), affects[i], true);
-                            }
+                        if(dbDialect.isNosql()) {
+                        	final NosqlTemplate nosqlTemplate = dbDialect.getNosqlTemplate();
+                        	if (useBatch && canBatch) {
+                        		// 处理结果，与事件集合对应，处理成功为1，失败为0
+                        		int[] affects = new int[splitDatas.size()];
+                        		nosqlTemplate.batchEventDatas(splitDatas, affects);
+                        		
+                        		// 更新统计信息
+                        		for (int i = 0; i < splitDatas.size(); i++) {
+                        			processStat(splitDatas.get(i), affects[i], true);
+                        		}
+                        	} else {
+                        		for(EventData event : splitDatas) {
+                        			if(event.getEventType().isInsert()) {
+                        				nosqlTemplate.insertEventData(event);
+                        			} else if(event.getEventType().isUpdate()) {
+                        				nosqlTemplate.updateEventData(event);
+                        			} else if(event.getEventType().isDelete()) {
+                        				nosqlTemplate.deleteEventData(event);
+                        			}
+                        			// 更新统计信息
+                        			processStat(event, 1, false);
+                        		}
+                        	}
                         } else {
-                            final EventData data = splitDatas.get(0);// 直接取第一条
-                            int affect = 0;
-                            affect = (Integer) dbDialect.getTransactionTemplate().execute(new TransactionCallback() {
-
-                                public Object doInTransaction(TransactionStatus status) {
-                                    try {
-                                        failedDatas.clear(); // 先清理
-                                        processedDatas.clear();
-                                        interceptor.transactionBegin(context, Arrays.asList(data), dbDialect);
-                                        JdbcTemplate template = dbDialect.getJdbcTemplate();
-                                        int affect = template.update(data.getSql(), new PreparedStatementSetter() {
-
-                                            public void setValues(PreparedStatement ps) throws SQLException {
-                                                doPreparedStatement(ps, dbDialect, lobCreator, data);
-                                            }
-                                        });
-                                        interceptor.transactionEnd(context, Arrays.asList(data), dbDialect);
-                                        return affect;
-                                    } finally {
-                                        lobCreator.close();
-                                    }
-                                }
-                            });
-                            // 更新统计信息
-                            processStat(data, affect, false);
+                        	final LobCreator lobCreator = dbDialect.getLobHandler().getLobCreator();
+                        	if (useBatch && canBatch) {
+                        		// 处理batch
+                        		final String sql = splitDatas.get(0).getSql();
+                        		int[] affects = new int[splitDatas.size()];
+                        		affects = (int[]) dbDialect.getTransactionTemplate().execute(new TransactionCallback() {
+                        			
+                        			public Object doInTransaction(TransactionStatus status) {
+                        				// 初始化一下内容
+                        				try {
+                        					failedDatas.clear(); // 先清理
+                        					processedDatas.clear();
+                        					interceptor.transactionBegin(context, splitDatas, dbDialect);
+                        					JdbcTemplate template = dbDialect.getJdbcTemplate();
+                        					int[] affects = template.batchUpdate(sql, new BatchPreparedStatementSetter() {
+                        						
+                        						public void setValues(PreparedStatement ps, int idx) throws SQLException {
+                        							doPreparedStatement(ps, dbDialect, lobCreator, splitDatas.get(idx));
+                        						}
+                        						
+                        						public int getBatchSize() {
+                        							return splitDatas.size();
+                        						}
+                        					});
+                        					interceptor.transactionEnd(context, splitDatas, dbDialect);
+                        					return affects;
+                        				} finally {
+                        					lobCreator.close();
+                        				}
+                        			}
+                        			
+                        		});
+                        		
+                        		// 更新统计信息
+                        		for (int i = 0; i < splitDatas.size(); i++) {
+                        			processStat(splitDatas.get(i), affects[i], true);
+                        		}
+                        	} else {
+                        		final EventData data = splitDatas.get(0);// 直接取第一条
+                        		int affect = 0;
+                        		affect = (Integer) dbDialect.getTransactionTemplate().execute(new TransactionCallback() {
+                        			
+                        			public Object doInTransaction(TransactionStatus status) {
+                        				try {
+                        					failedDatas.clear(); // 先清理
+                        					processedDatas.clear();
+                        					interceptor.transactionBegin(context, Arrays.asList(data), dbDialect);
+                        					JdbcTemplate template = dbDialect.getJdbcTemplate();
+                        					int affect = template.update(data.getSql(), new PreparedStatementSetter() {
+                        						
+                        						public void setValues(PreparedStatement ps) throws SQLException {
+                        							doPreparedStatement(ps, dbDialect, lobCreator, data);
+                        						}
+                        					});
+                        					interceptor.transactionEnd(context, Arrays.asList(data), dbDialect);
+                        					return affect;
+                        				} finally {
+                        					lobCreator.close();
+                        				}
+                        			}
+                        		});
+                        		// 更新统计信息
+                        		processStat(data, affect, false);
+                        	}
                         }
 
                         error = null;

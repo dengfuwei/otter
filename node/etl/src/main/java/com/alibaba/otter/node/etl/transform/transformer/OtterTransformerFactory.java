@@ -26,6 +26,7 @@ import com.alibaba.otter.shared.common.model.config.ConfigHelper;
 import com.alibaba.otter.shared.common.model.config.data.DataMedia;
 import com.alibaba.otter.shared.common.model.config.data.DataMediaPair;
 import com.alibaba.otter.shared.common.model.config.data.db.DbDataMedia;
+import com.alibaba.otter.shared.common.model.config.data.es.ElasticsearchDataMedia;
 import com.alibaba.otter.shared.common.model.config.pipeline.Pipeline;
 import com.alibaba.otter.shared.etl.model.BatchObject;
 import com.alibaba.otter.shared.etl.model.EventData;
@@ -164,6 +165,9 @@ public class OtterTransformerFactory {
     private OtterTransformer lookup(DataMedia sourceDataMedia, DataMedia targetDataMedia) {
         if (sourceDataMedia instanceof DbDataMedia && targetDataMedia instanceof DbDataMedia) {
             return rowDataTransformer;
+        } else if(sourceDataMedia instanceof DbDataMedia && targetDataMedia instanceof ElasticsearchDataMedia) {
+        	return rowDataTransformer;
+//        	return new DB2ESDataTransformer();
         }
 
         throw new TransformException("no support translate for source " + sourceDataMedia.toString() + " to target "

@@ -16,15 +16,26 @@
 
 package com.alibaba.otter.node.etl.common.datasource.impl;
 
+import static org.apache.commons.lang.StringUtils.split;
+import static org.apache.commons.lang.StringUtils.substringAfterLast;
+import static org.apache.commons.lang.StringUtils.substringBeforeLast;
+
+import java.net.InetAddress;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.sql.DataSource;
 
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.commons.lang.StringUtils;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
@@ -36,6 +47,7 @@ import com.alibaba.otter.node.etl.common.datasource.DataSourceService;
 import com.alibaba.otter.shared.common.model.config.data.DataMediaSource;
 import com.alibaba.otter.shared.common.model.config.data.DataMediaType;
 import com.alibaba.otter.shared.common.model.config.data.db.DbMediaSource;
+import com.alibaba.otter.shared.common.model.config.data.es.ElasticsearchMediaSource;
 import com.google.common.base.Function;
 import com.google.common.collect.OtterMigrateMap;
 
@@ -74,30 +86,39 @@ public class DBDataSourceService implements DataSourceService, DisposableBean {
      * key = pipelineId<br>
      * value = key(dataMediaSourceId)-value(DataSource)<br>
      */
-    private Map<Long, Map<DbMediaSource, DataSource>> dataSources;
+    private Map<Long, Map<DataMediaSource, Object>> dataSources;
 
     public DBDataSourceService(){
         // 构建第一层map
-        dataSources = OtterMigrateMap.makeComputingMap(new Function<Long, Map<DbMediaSource, DataSource>>() {
+        dataSources = OtterMigrateMap.makeComputingMap(new Function<Long, Map<DataMediaSource, Object>>() {
 
-            public Map<DbMediaSource, DataSource> apply(final Long pipelineId) {
+            public Map<DataMediaSource, Object> apply(final Long pipelineId) {
                 // 构建第二层map
-                return OtterMigrateMap.makeComputingMap(new Function<DbMediaSource, DataSource>() {
+                return OtterMigrateMap.makeComputingMap(new Function<DataMediaSource, Object>() {
 
-                    public DataSource apply(DbMediaSource dbMediaSource) {
-
-                        // 扩展功能,可以自定义一些自己实现的 dataSource
-                        DataSource customDataSource = preCreate(pipelineId, dbMediaSource);
-                        if (customDataSource != null) {
-                            return customDataSource;
-                        }
-
-                        return createDataSource(dbMediaSource.getUrl(),
-                            dbMediaSource.getUsername(),
-                            dbMediaSource.getPassword(),
-                            dbMediaSource.getDriver(),
-                            dbMediaSource.getType(),
-                            dbMediaSource.getEncode());
+                    public Object apply(DataMediaSource dataMediaSource) {
+                    	if(dataMediaSource.getType().isElasticSearch()) {
+                    		try {
+								return createElasticsearchClient(dataMediaSource);
+							} catch (Exception e) {
+								logger.error("create Elasticsearch client exception", e);
+								return null;
+							}
+                    	} else {
+                    		DbMediaSource dbMediaSource = (DbMediaSource) dataMediaSource;
+                    		// 扩展功能,可以自定义一些自己实现的 dataSource
+                    		DataSource customDataSource = preCreate(pipelineId, dbMediaSource);
+                    		if (customDataSource != null) {
+                    			return customDataSource;
+                    		}
+                    		
+                    		return createDataSource(dbMediaSource.getUrl(),
+                    				dbMediaSource.getUsername(),
+                    				dbMediaSource.getPassword(),
+                    				dbMediaSource.getDriver(),
+                    				dbMediaSource.getType(),
+                    				dbMediaSource.getEncode());
+                    	}
                     }
 
                 });
@@ -105,26 +126,56 @@ public class DBDataSourceService implements DataSourceService, DisposableBean {
         });
 
     }
+    
+    protected Client createElasticsearchClient(DataMediaSource dataMediaSource) throws Exception {
+    	ElasticsearchMediaSource esMediaSource = (ElasticsearchMediaSource) dataMediaSource;
+    	Settings settings = Settings.builder()
+		.put("cluster.name", esMediaSource.getClusterName())
+		.put("client.transport.sniff", true)
+		// 忽略集群名的验证
+		.put("client.transport.ignore_cluster_name", true)
+		.build();
+    	String clusterNodes = esMediaSource.getClusterNodes();
+    	@SuppressWarnings("unchecked")
+		TransportClient client = new PreBuiltTransportClient(settings);
+		Assert.hasText(clusterNodes, "[Assertion failed] clusterNodes settings missing.");
+		for (String clusterNode : split(clusterNodes, ",")) {
+			String hostName = substringBeforeLast(clusterNode, ":");
+			String port = substringAfterLast(clusterNode, ":");
+			Assert.hasText(hostName, "[Assertion failed] missing host name in 'clusterNodes'");
+			Assert.hasText(port, "[Assertion failed] missing port in 'clusterNodes'");
+			logger.info("adding transport node : " + clusterNode);
+			client.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(hostName), Integer.valueOf(port)));
+		}
+//		client.connectedNodes();
+		return client;
+	}
 
-    public DataSource getDataSource(long pipelineId, DataMediaSource dataMediaSource) {
+	@SuppressWarnings("unchecked")
+	public Object getDataSource(long pipelineId, DataMediaSource dataMediaSource) {
         Assert.notNull(dataMediaSource);
-        return dataSources.get(pipelineId).get(dataMediaSource);
+    	return dataSources.get(pipelineId).get(dataMediaSource);
     }
 
     public void destroy(Long pipelineId) {
-        Map<DbMediaSource, DataSource> sources = dataSources.remove(pipelineId);
+        Map<DataMediaSource, Object> sources = dataSources.remove(pipelineId);
         if (sources != null) {
-            for (DataSource source : sources.values()) {
+            for (Entry<DataMediaSource, Object> source : sources.entrySet()) {
                 try {
-                    // for filter to destroy custom datasource
-                    if (letHandlerDestroyIfSupport(pipelineId, source)) {
-                        continue;
-                    }
-
-                    // fallback for regular destroy
-                    // TODO need to integrate to handler
-                    BasicDataSource basicDataSource = (BasicDataSource) source;
-                    basicDataSource.close();
+                	if(source.getKey().getType().isElasticSearch()) {
+                		TransportClient client = (TransportClient) source.getValue();
+                		client.close();
+                	} else {
+                		// for filter to destroy custom datasource
+                		if (letHandlerDestroyIfSupport(pipelineId, (DataSource) source.getValue())) {
+                			continue;
+                		}
+                		
+                		// fallback for regular destroy
+                		// TODO need to integrate to handler
+                		BasicDataSource basicDataSource = (BasicDataSource) source.getValue();
+                		basicDataSource.close();
+                	}
                 } catch (SQLException e) {
                     logger.error("ERROR ## close the datasource has an error", e);
                 }

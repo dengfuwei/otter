@@ -56,6 +56,7 @@ public abstract class AbstractDbDialect implements DbDialect {
     protected DataSourceService        dataSourceService;
     protected SqlTemplate              sqlTemplate;
     protected JdbcTemplate             jdbcTemplate;
+    protected NosqlTemplate            nosqlTemplate;
     protected TransactionTemplate      transactionTemplate;
     protected LobHandler               lobHandler;
     protected Map<List<String>, Table> tables;
@@ -155,7 +156,12 @@ public abstract class AbstractDbDialect implements DbDialect {
         return sqlTemplate;
     }
 
-    public boolean isDRDS() {
+    @Override
+	public NosqlTemplate getNosqlTemplate() {
+		return null;
+	}
+
+	public boolean isDRDS() {
         return false;
     }
 

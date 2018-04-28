@@ -50,7 +50,7 @@ $control.setTemplate("home:navigation.vm")
       <td width="12%">$!source.name</td>
       <td>$!source.type</td>
 	  <td>$!source.encode</td>
-      <td>#if($!source.type == 'ELASTICSEARCH') $!source.clusterNodes #else $!source.url #end</td>
+      <td>#if($!source.type == 'ELASTICSEARCH') $!source.clusterNodes ($!source.clusterName) #else $!source.url #end</td>
 	  
 	  <td>
 		#set ($dataSourceInfoURL = $homeModule.setTarget("dataSourceInfo.vm").addQueryData("dataMediaSourceId", $source.id))

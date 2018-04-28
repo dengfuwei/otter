@@ -362,9 +362,9 @@ public class MessageParser {
                     notExistReturnNull);
                 // 如果EventType是CREATE/ALTER，需要reload
                 // DataMediaInfo;并且把CREATE/ALTER类型的事件丢弃掉.
-                if (dataMedia != null && (eventType.isCreate() || eventType.isAlter() || eventType.isRename())) {
-                    DbDialect dbDialect = dbDialectFactory.getDbDialect(pipeline.getId(),
-                        (DbMediaSource) dataMedia.getSource());
+                if (dataMedia != null && (eventType.isCreate() || eventType.isAlter() || eventType.isRename())
+                		&& (dataMedia.getSource().getType().isMysql() || dataMedia.getSource().getType().isOracle())) {
+                    DbDialect dbDialect = dbDialectFactory.getDbDialect(pipeline.getId(), dataMedia.getSource());
                     dbDialect.reloadTable(schemaName, tableName);// 更新下meta信息
                 }
 
@@ -430,8 +430,7 @@ public class MessageParser {
             if (useTableTransform || dataMedia.getSource().getType().isOracle()) {// oracle需要反查一次meta
                 // 如果设置了需要进行table meta转化，则反查一下table信息
                 // 比如oracle erosa解析时可能使用了非物理主键，需要直接使用，信任erosa的信息
-                DbDialect dbDialect = dbDialectFactory.getDbDialect(pipeline.getId(),
-                    (DbMediaSource) dataMedia.getSource());
+                DbDialect dbDialect = dbDialectFactory.getDbDialect(pipeline.getId(), dataMedia.getSource());
                 table = dbDialect.findTable(eventData.getSchemaName(), eventData.getTableName());// 查询一下meta信息
                 if (table == null) {
                     logger.warn("find table[{}.{}] is null , may be drop table.",
@@ -440,32 +439,34 @@ public class MessageParser {
                 }
                 // 获取一下目标库的拆分字段,设置源表为主键
                 // 首先要求源和目标的库名表名是一致的
-                DbDialect targetDbDialect = dbDialectFactory.getDbDialect(pipeline.getId(),
-                    (DbMediaSource) targetDataMedia.getSource());
-                if (targetDbDialect.isDRDS()) {
-                    String schemaName = buildName(eventData.getSchemaName(),
-                        dataMedia.getNamespaceMode(),
-                        targetDataMedia.getNamespaceMode());
-                    String tableName = buildName(eventData.getSchemaName(),
-                        dataMedia.getNameMode(),
-                        targetDataMedia.getNameMode());
-                    String shardColumns = targetDbDialect.getShardColumns(schemaName, tableName);
-                    if (StringUtils.isNotEmpty(shardColumns)) {
-                        String columns[] = StringUtils.split(shardColumns, ',');
-                        for (String key : columns) {
-                            org.apache.ddlutils.model.Column col = table.findColumn(key, false);
-                            if (col != null) {
-                                col.setPrimaryKey(true);
-                            } else {
-                                logger.warn(String.format("shardColumn %s in table[%s.%s] is not found",
-                                    key,
-                                    eventData.getSchemaName(),
-                                    eventData.getTableName()));
-                            }
-                        }
-                    }
+                if(targetDataMedia.getSource().getType().isMysql() || targetDataMedia.getSource().getType().isOracle()) {
+                	DbDialect targetDbDialect = dbDialectFactory.getDbDialect(pipeline.getId(),
+                			(DbMediaSource) targetDataMedia.getSource());
+                	if (targetDbDialect.isDRDS()) {
+                		String schemaName = buildName(eventData.getSchemaName(),
+                				dataMedia.getNamespaceMode(),
+                				targetDataMedia.getNamespaceMode());
+                		String tableName = buildName(eventData.getSchemaName(),
+                				dataMedia.getNameMode(),
+                				targetDataMedia.getNameMode());
+                		String shardColumns = targetDbDialect.getShardColumns(schemaName, tableName);
+                		if (StringUtils.isNotEmpty(shardColumns)) {
+                			String columns[] = StringUtils.split(shardColumns, ',');
+                			for (String key : columns) {
+                				org.apache.ddlutils.model.Column col = table.findColumn(key, false);
+                				if (col != null) {
+                					col.setPrimaryKey(true);
+                				} else {
+                					logger.warn(String.format("shardColumn %s in table[%s.%s] is not found",
+                							key,
+                							eventData.getSchemaName(),
+                							eventData.getTableName()));
+                				}
+                			}
+                		}
+                	}
+                	tableHolder = new TableInfoHolder(dbDialect, table, useTableTransform);
                 }
-                tableHolder = new TableInfoHolder(dbDialect, table, useTableTransform);
             }
         }
 
