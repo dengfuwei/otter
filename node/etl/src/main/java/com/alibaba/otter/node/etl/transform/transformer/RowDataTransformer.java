@@ -16,18 +16,6 @@
 
 package com.alibaba.otter.node.etl.transform.transformer;
 
-import java.sql.Types;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.ddlutils.model.Column;
-import org.apache.ddlutils.model.Table;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
-
 import com.alibaba.otter.node.etl.common.db.dialect.DbDialect;
 import com.alibaba.otter.node.etl.common.db.dialect.DbDialectFactory;
 import com.alibaba.otter.node.etl.common.db.utils.DdlUtils;
@@ -44,6 +32,17 @@ import com.alibaba.otter.shared.etl.model.EventType;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.taobao.tddl.dbsync.binlog.CustomColumnType;
+import org.apache.commons.lang.StringUtils;
+import org.apache.ddlutils.model.Column;
+import org.apache.ddlutils.model.Table;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
+
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * RowData -> RowData数据的转换
@@ -76,6 +75,13 @@ public class RowDataTransformer extends AbstractOtterTransformer<EventData, Even
         // es不需要转换字段
         if(dataMedia.getSource().getType().isElasticSearch()) {
         	result.setKeys(data.getKeys());
+            // 转换坐标类型的字段 dengfuwei 20180502
+            List<EventColumn> columns = data.getColumns();
+            for(EventColumn column : columns){
+                if(column.getColumnType() == CustomColumnType.POINT){
+                    column.setColumnValue(getPoint(context.getDataMediaPair(), data, column));
+                }
+            }
         	result.setColumns(data.getColumns());
         	return result;
         }
@@ -328,26 +334,7 @@ public class RowDataTransformer extends AbstractOtterTransformer<EventData, Even
         // 如果是point类型，从源库查询数据拼接成字符串 dengfuwei 20180426
         if(scolumn.getColumnType() == CustomColumnType.POINT && tcolumn.getColumnType() == Types.OTHER) {
         	tcolumn.setColumnType(scolumn.getColumnType());
-        	DbMediaSource dbMediaSource = (DbMediaSource) dataMediaPair.getSource().getSource();
-            DbDialect dbDialect = dbDialectFactory.getDbDialect(dataMediaPair.getPipelineId(), dbMediaSource);
-            
-            StringBuilder pointSql = new StringBuilder();
-    		pointSql.append("select astext(").append(scolumn.getColumnName()).append(") from ")
-    			.append(sdata.getSchemaName()).append(".").append(sdata.getTableName())
-    			.append(" where ");
-    		for(int j = 0; j < sdata.getKeys().size(); j++) {
-    			EventColumn pk = sdata.getKeys().get(j);
-    			pointSql.append(j == 0 ? "" : " and ").append(pk.getColumnName())
-    				.append(" = ").append(pk.getColumnValue());
-    		}
-    		logger.warn("query point sql : {}", pointSql.toString());
-    		String point = "POINT(104.070449 30.548166)";
-    		try {
-				point = dbDialect.getJdbcTemplate().queryForObject(pointSql.toString(), String.class);
-			} catch (Exception e) {
-				logger.error("query point occured an exception", e);
-			}
-    		point = point.replace(" ", ",");
+    		String point = getPoint(dataMediaPair, sdata, scolumn);
     		tcolumn.setColumnValue(point);
         } else {
         	tcolumn.setColumnValue(scolumn.getColumnValue());
@@ -355,6 +342,39 @@ public class RowDataTransformer extends AbstractOtterTransformer<EventData, Even
         // }
         translateColumnNames.remove(scolumn.getColumnName(), columnName);// 删除映射关系，避免下次重复转换
         return tcolumn;
+    }
+
+    /**
+     * @desc 从源数据库中查询坐标类型的字段值
+     * @author dengfuwei
+     * @date 20180502
+     * @param dataMediaPair
+     * @param sdata
+     * @param scolumn
+     * @return
+     */
+    private String getPoint(DataMediaPair dataMediaPair, EventData sdata, EventColumn scolumn){
+        DbMediaSource dbMediaSource = (DbMediaSource) dataMediaPair.getSource().getSource();
+        DbDialect dbDialect = dbDialectFactory.getDbDialect(dataMediaPair.getPipelineId(), dbMediaSource);
+
+        StringBuilder pointSql = new StringBuilder();
+        pointSql.append("select astext(").append(scolumn.getColumnName()).append(") from ")
+                .append(sdata.getSchemaName()).append(".").append(sdata.getTableName())
+                .append(" where ");
+        for(int j = 0; j < sdata.getKeys().size(); j++) {
+            EventColumn pk = sdata.getKeys().get(j);
+            pointSql.append(j == 0 ? "" : " and ").append(pk.getColumnName())
+                    .append(" = ").append(pk.getColumnValue());
+        }
+        logger.warn("query point sql : {}", pointSql.toString());
+        String point = "POINT(104.070449 30.548166)";
+        try {
+            point = dbDialect.getJdbcTemplate().queryForObject(pointSql.toString(), String.class);
+        } catch (Exception e) {
+            logger.error("query point occured an exception", e);
+        }
+        point = point.replace(" ", ",");
+        return point;
     }
 
     // 根据pk的值 + oldPk的value重新构造一个column对象，用于where pk = oldValue
